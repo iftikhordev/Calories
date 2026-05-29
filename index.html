@@ -1,888 +1,346 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calorie AI Scanner | Kaloriya Hisoblovchi</title>
-
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com">
-    </script>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js">
-    </script>
-    <!-- Font Awesome 6 CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#10B981',
-                        primaryDark: '#059669',
-                        secondary: '#F59E0B',
-                        dark: '#111827',
-                        card: '#FFFFFF',
-                        bg: '#F3F4F6',
-                        danger: '#EF4444',
-                        textLight: '#6B7280',
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        :root {
-            --safe-bottom: env(safe-area-inset-bottom, 20px);
-        }
-        * {
-            -webkit-tap-highlight-color: transparent;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: #F3F4F6;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Mobil ramka uchun maksimal kenglik */
-        .app-container {
-            max-width: 430px;
-            margin: 0 auto;
-            min-height: 100vh;
-            background: #F9FAFB;
-            position: relative;
-            box-shadow: 0 0 60px rgba(0, 0, 0, 0.2);
-            border-radius: 0;
-            overflow: hidden;
-        }
-        @media (min-width: 431px) {
-            body {
-                background: #1F2937;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                min-height: 100vh;
-            }
-            .app-container {
-                border-radius: 32px;
-                min-height: 90vh;
-                max-height: 95vh;
-                overflow-y: auto;
-            }
-        }
-
-        /* Sahifalar */
-        .page {
-            display: none;
-            padding-bottom: 85px;
-            animation: fadeSlideIn 0.3s ease;
-        }
-        .page.active {
-            display: block;
-        }
-
-        @keyframes fadeSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(12px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        @keyframes pulseScan {
-            0%,
-            100% {
-                opacity: 0.6;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 1;
-                transform: scale(1.08);
-            }
-        }
-        @keyframes spinSlow {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-        @keyframes bounceIn {
-            0% {
-                transform: scale(0.3);
-                opacity: 0;
-            }
-            50% {
-                transform: scale(1.05);
-            }
-            70% {
-                transform: scale(0.95);
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-        .scan-ring {
-            animation: pulseScan 1.5s infinite ease-in-out;
-        }
-        .scan-spinner {
-            animation: spinSlow 2s linear infinite;
-        }
-        .bounce-in {
-            animation: bounceIn 0.5s ease forwards;
-        }
-
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100%;
-            max-width: 430px;
-            background: #FFFFFF;
-            border-top: 1px solid #E5E7EB;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            height: 70px;
-            padding-bottom: var(--safe-bottom);
-            z-index: 100;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
-        }
-        .bottom-nav .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            font-size: 11px;
-            font-weight: 500;
-            color: #9CA3AF;
-            transition: all 0.2s;
-            padding: 6px 14px;
-            border-radius: 16px;
-            cursor: pointer;
-            background: transparent;
-            border: none;
-            outline: none;
-        }
-        .bottom-nav .nav-item.active {
-            color: #10B981;
-            background: #ECFDF5;
-        }
-        .bottom-nav .nav-item i {
-            font-size: 20px;
-            transition: transform 0.2s;
-        }
-        .bottom-nav .nav-item.active i {
-            transform: scale(1.15);
-        }
-
-        /* Progress ring */
-        .progress-ring-circle {
-            transition: stroke-dashoffset 0.6s ease;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 3px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #D1D5DB;
-            border-radius: 10px;
-        }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #111827;
-            color: #FFF;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 14px;
-            font-weight: 600;
-            z-index: 999;
-            opacity: 0;
-            transition: all 0.35s ease;
-            pointer-events: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-        }
-        .toast.show {
-            opacity: 1;
-            top: 30px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kaloriya Scanner AI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #111827);
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 36px;
+    }
+    .hero p {
+      margin: 0;
+      color: #cbd5e1;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .tab {
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      background: #334155;
+      color: #fff;
+      font-weight: 600;
+    }
+    .tab.active {
+      background: #22c55e;
+    }
+    .camera-box, .upload-box {
+      display: grid;
+      gap: 16px;
+    }
+    video, img.preview {
+      width: 100%;
+      max-height: 420px;
+      object-fit: cover;
+      border-radius: 16px;
+      background: #000;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border: none;
+      padding: 14px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.2s;
+    }
+    .btn-primary {
+      background: #22c55e;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #3b82f6;
+      color: #fff;
+    }
+    .btn-dark {
+      background: #475569;
+      color: #fff;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .metric {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+    .metric span {
+      display: block;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+    .metric strong {
+      font-size: 20px;
+    }
+    .history ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .history li {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      color: #e2e8f0;
+    }
+    .muted { color: #94a3b8; }
+    .status {
+      margin-top: 10px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+    .scanner-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 8px;
+      box-shadow: 0 0 10px #22c55e;
+    }
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 28px; }
+      .btn { width: 100%; }
+      .btn-row { flex-direction: column; }
+    }
+  </style>
 </head>
 <body>
-
-    <div class="app-container" id="appContainer">
-        <!-- TOAST -->
-        <div class="toast" id="toast"></div>
-
-        <!-- ========== PAGE: DASHBOARD ========== -->
-        <div class="page active" id="pageDashboard">
-            <!-- Header -->
-            <div class="px-5 pt-6 pb-2 flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-extrabold text-gray-800">Salom, Iftikhor 👋</h1>
-                    <p class="text-sm text-gray-500 mt-0.5">Bugungi kaloriya balansingiz</p>
-                </div>
-                <button onclick="clearAllData()" id="btnClear"
-                class="bg-red-50 text-red-500 px-4 py-2 rounded-full text-sm font-semibold hover:bg-red-100 transition active:scale-95">
-                <i class="fa-solid fa-trash-can mr-1"></i> Tozalash
-            </button>
-        </div>
-
-        <!-- Kaloriya ko'rsatkichi -->
-        <div class="px-5 mt-3">
-            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Bugungi Kaloriya</p>
-                        <h2 class="text-4xl font-extrabold text-gray-800 mt-1" id="todayCalories">0</h2>
-                        <p class="text-sm text-gray-400 mt-1">kkal / <span id="dailyGoal">2200</span> kkal maqsad</p>
-                    </div>
-                    <div class="relative w-20 h-20">
-                        <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                            <circle cx="40" cy="40" r="32" fill="none" stroke="#E5E7EB" stroke-width="8"/>
-                            <circle cx="40" cy="40" r="32" fill="none" stroke="#10B981" stroke-width="8"
-                            stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"
-                            id="progressCircle" class="progress-ring-circle"/>
-                        </svg>
-                        <span class="absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-700"
-                        id="progressPercent">0%</span>
-                    </div>
-                </div>
-                <!-- Makronutriyentlar -->
-                <div class="grid grid-cols-3 gap-3 mt-5">
-                    <div class="bg-blue-50 rounded-2xl p-3 text-center">
-                        <p class="text-xs text-blue-500 font-semibold">Oqsil</p>
-                        <p class="text-lg font-bold text-blue-700" id="macroProtein">0g</p>
-                    </div>
-                    <div class="bg-amber-50 rounded-2xl p-3 text-center">
-                        <p class="text-xs text-amber-500 font-semibold">Uglevod</p>
-                        <p class="text-lg font-bold text-amber-700" id="macroCarbs">0g</p>
-                    </div>
-                    <div class="bg-pink-50 rounded-2xl p-3 text-center">
-                        <p class="text-xs text-pink-500 font-semibold">Yog'</p>
-                        <p class="text-lg font-bold text-pink-700" id="macroFat">0g</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Grafik -->
-        <div class="px-5 mt-4">
-            <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-                <h3 class="text-base font-bold text-gray-700 mb-3">📊 Haftalik statistika</h3>
-                <div class="w-full h-56">
-                    <canvas id="chartCanvas"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bugungi taomlar tarixi -->
-        <div class="px-5 mt-4 mb-2">
-            <h3 class="text-base font-bold text-gray-700 mb-2">🍽️ Bugungi taomlar tarixi</h3>
-            <div id="mealHistory" class="flex flex-col gap-2">
-                <p class="text-sm text-gray-400 italic text-center py-4">Hozircha taom qo'shilmagan</p>
-            </div>
-        </div>
+  <div class="container">
+    <div class="hero">
+      <h1>Kaloriya Scanner AI</h1>
+      <p>Ovqatni suratga oling yoki yuklang, kaloriya taxmini darhol chiqadi.</p>
     </div>
 
-    <!-- ========== PAGE: AI SCANNER ========== -->
-    <div class="page" id="pageScanner">
-        <div class="px-5 pt-6 pb-2">
-            <h1 class="text-2xl font-extrabold text-gray-800">📸 AI Scanner</h1>
-            <p class="text-sm text-gray-500 mt-1">Ovqat suratini yuklang, AI tahlil qilsin</p>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" id="cameraTab">Kamera</button>
+        <button class="tab" id="uploadTab">Upload</button>
+      </div>
+
+      <div id="cameraSection" class="camera-box">
+        <video id="video" autoplay playsinline></video>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="startCameraBtn">Kamerani yoqish</button>
+          <button class="btn btn-secondary" id="captureBtn">Scan qilish</button>
+          <button class="btn btn-dark" id="stopCameraBtn">Kamerani o‘chirish</button>
         </div>
+        <div class="status" id="cameraStatus">Holat: kamera o‘chiq.</div>
+      </div>
 
-        <!-- Kamera / Yuklash maydoni -->
-        <div class="px-5 mt-4">
-            <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 text-center relative overflow-hidden"
-            id="scanArea">
-            <!-- Yuklash input -->
-            <input type="file" accept="image/*" id="fileInput" class="hidden" onchange="handleFileSelect(event)">
-            <div id="scanPlaceholder" class="cursor-pointer" onclick="document.getElementById('fileInput').click()">
-                <div class="w-24 h-24 mx-auto bg-emerald-50 rounded-full flex items-center justify-center scan-ring">
-                    <i class="fa-solid fa-camera text-4xl text-emerald-500"></i>
-                </div>
-                <p class="text-gray-500 mt-4 font-medium">Suratga olish uchun bosing</p>
-                <p class="text-xs text-gray-400 mt-1">yoki rasmni shu yerga sudrab keling</p>
-            </div>
-            <!-- Scanning animatsiya -->
-            <div id="scanLoading" class="hidden py-8">
-                <div class="w-20 h-20 mx-auto border-4 border-emerald-200 border-t-emerald-500 rounded-full scan-spinner"></div>
-                <p class="text-emerald-600 font-semibold mt-4">AI tahlil qilmoqda...</p>
-                <p class="text-xs text-gray-400">2 soniya kuting</p>
-            </div>
-            <!-- Natija -->
-            <div id="scanResult" class="hidden bounce-in">
-                <div class="w-20 h-20 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
-                    <i class="fa-solid fa-check-circle text-4xl text-emerald-500"></i>
-                </div>
-                <h3 class="font-bold text-lg text-gray-800 mt-3" id="scanFoodName">—</h3>
-                <p class="text-3xl font-extrabold text-emerald-600 mt-1" id="scanCalories">0 kkal</p>
-                <div class="flex justify-center gap-4 mt-3 text-sm text-gray-500">
-                    <span>Oqsil: <b id="scanProtein">0g</b></span>
-                    <span>Uglevod: <b id="scanCarbs">0g</b></span>
-                    <span>Yog': <b id="scanFat">0g</b></span>
-                </div>
-                <button onclick="addScannedFood()"
-                class="mt-5 bg-emerald-500 text-white px-8 py-3 rounded-full font-bold text-sm hover:bg-emerald-600 transition active:scale-95 shadow-lg shadow-emerald-200">
-                ✅ Ratsionga qo'shish
-            </button>
-            <button onclick="resetScanner()"
-            class="mt-2 text-gray-400 text-xs underline block mx-auto">Qayta skanerlash</button>
+      <div id="uploadSection" class="upload-box" style="display:none;">
+        <input type="file" id="fileInput" accept="image/*" capture="environment" />
+        <img id="preview" class="preview" style="display:none;" />
+        <div class="btn-row">
+          <button class="btn btn-primary" id="chooseFileBtn">Rasm tanlash</button>
+          <button class="btn btn-secondary" id="scanUploadBtn">Scan qilish</button>
         </div>
+        <div class="status" id="uploadStatus">Holat: rasm tanlanmagan.</div>
+      </div>
     </div>
-    <!-- Tezkor qo'shish tugmalari -->
-    <div class="mt-5 px-2">
-        <p class="text-xs text-gray-400 text-center mb-2">yoki tezkor tanlang:</p>
-        <div class="flex flex-wrap gap-2 justify-center">
-            <button onclick="quickScan('Palov', 580, 18, 72, 22)" class="bg-white px-4 py-2 rounded-full text-sm font-medium shadow-sm border border-gray-200 hover:bg-emerald-50 active:scale-95 transition">🍛 Palov</button>
-            <button onclick="quickScan('Tort bo‘lagi', 420, 5, 58, 18)" class="bg-white px-4 py-2 rounded-full text-sm font-medium shadow-sm border border-gray-200 hover:bg-emerald-50 active:scale-95 transition">🍰 Tort bo‘lagi</button>
-            <button onclick="quickScan('Shashlik', 350, 28, 4, 24)" class="bg-white px-4 py-2 rounded-full text-sm font-medium shadow-sm border border-gray-200 hover:bg-emerald-50 active:scale-95 transition">🥩 Shashlik</button>
-            <button onclick="quickScan('Manti', 480, 22, 48, 20)" class="bg-white px-4 py-2 rounded-full text-sm font-medium shadow-sm border border-gray-200 hover:bg-emerald-50 active:scale-95 transition">🥟 Manti</button>
-            <button onclick="quickScan('Salat', 120, 4, 10, 7)" class="bg-white px-4 py-2 rounded-full text-sm font-medium shadow-sm border border-gray-200 hover:bg-emerald-50 active:scale-95 transition">🥗 Salat</button>
-            <button onclick="quickScan('Burger', 650, 28, 44, 35)" class="bg-white px-4 py-2 rounded-full text-sm font-medium shadow-sm border border-gray-200 hover:bg-emerald-50 active:scale-95 transition">🍔 Burger</button>
-        </div>
+
+    <div class="card" id="resultCard" style="display:none;">
+      <h2>Natija</h2>
+      <p id="resultText" class="muted"></p>
+      <div class="result-grid">
+        <div class="metric"><span>Ovqat</span><strong id="foodName">-</strong></div>
+        <div class="metric"><span>Kaloriya</span><strong id="calories">-</strong></div>
+        <div class="metric"><span>Protein</span><strong id="protein">-</strong></div>
+        <div class="metric"><span>Yog'</span><strong id="fat">-</strong></div>
+        <div class="metric"><span>Uglevod</span><strong id="carbs">-</strong></div>
+        <div class="metric"><span>Ishonch</span><strong id="confidence">-</strong></div>
+      </div>
     </div>
-</div>
 
-<!-- ========== PAGE: AI CHAT ========== -->
-<div class="page" id="pageChat">
-    <div class="px-5 pt-6 pb-2">
-        <h1 class="text-2xl font-extrabold text-gray-800">🤖 AI Chat</h1>
-        <p class="text-sm text-gray-500 mt-1">Ovqatlar haqida savol bering</p>
+    <div class="card history">
+      <h2>Tarix</h2>
+      <ul id="historyList">
+        <li><span class="muted">Hali scan qilinmagan.</span></li>
+      </ul>
     </div>
-    <div class="px-5 mt-3">
-        <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 h-80 overflow-y-auto flex flex-col gap-3"
-        id="chatMessages">
-        <div class="bg-emerald-50 rounded-2xl px-4 py-3 self-start max-w-[85%]">
-            <p class="text-sm text-gray-700">Assalomu alaykum! Men kaloriyalar bo'yicha AI yordamchingizman. Qaysi taom qancha kaloriya ekanligini yoki sog'lom ovqatlanish bo'yicha savollaringizni bering. 😊</p>
-        </div>
-    </div>
-    <div class="flex mt-3 gap-2">
-        <input type="text" id="chatInput" placeholder="Masalan: Palov qancha kaloriya?"
-        class="flex-1 bg-white border border-gray-200 rounded-full px-5 py-3 text-sm outline-none focus:border-emerald-400 transition">
-        <button onclick="sendChatMessage()"
-        class="bg-emerald-500 text-white px-5 py-3 rounded-full font-semibold text-sm hover:bg-emerald-600 active:scale-95 transition shadow">
-        <i class="fa-solid fa-paper-plane"></i>
-    </button>
-</div>
-<p class="text-xs text-gray-400 mt-2 text-center">* ChatGPT uslubidagi AI yordamchi</p>
-</div>
-</div>
+  </div>
 
-<!-- ========== BOTTOM NAVIGATION ========== -->
-<div class="bottom-nav">
-    <button class="nav-item active" data-page="pageDashboard" onclick="switchPage('pageDashboard', this)">
-        <i class="fa-solid fa-house"></i>
-        <span>Bosh sahifa</span>
-    </button>
-    <button class="nav-item" data-page="pageScanner" onclick="switchPage('pageScanner', this)">
-        <i class="fa-solid fa-camera"></i>
-        <span>AI Scan</span>
-    </button>
-    <button class="nav-item" data-page="pageChat" onclick="switchPage('pageChat', this)">
-        <i class="fa-solid fa-robot"></i>
-        <span>AI Chat</span>
-    </button>
-</div>
-</div>
+  <script>
+    const cameraTab = document.getElementById('cameraTab');
+    const uploadTab = document.getElementById('uploadTab');
+    const cameraSection = document.getElementById('cameraSection');
+    const uploadSection = document.getElementById('uploadSection');
 
-<script>
-    // ==================== GLOBAL STATE ====================
-    const STORAGE_KEY = 'calorieAiData';
-    const DAILY_GOAL = 2200; // kkal
+    const video = document.getElementById('video');
+    const startCameraBtn = document.getElementById('startCameraBtn');
+    const stopCameraBtn = document.getElementById('stopCameraBtn');
+    const captureBtn = document.getElementById('captureBtn');
+    const cameraStatus = document.getElementById('cameraStatus');
 
-    // Hafta kunlari (o'zbekcha)
-    const weekDays = ['Yak', 'Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan'];
-    const weekDaysFull = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma',
-    'Shanba'];
+    const fileInput = document.getElementById('fileInput');
+    const chooseFileBtn = document.getElementById('chooseFileBtn');
+    const preview = document.getElementById('preview');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const scanUploadBtn = document.getElementById('scanUploadBtn');
 
-    // Default data
-    function getDefaultData() {
-        const now = new Date();
-        const todayIdx = now.getDay(); // 0=yakshanba, 6=shanba
-        const weekData = {};
-        for (let i = 0; i < 7; i++) {
-            const key = `day${i}`;
-            weekData[key] = 0;
-        }
-        return {
-            weekCalories: weekData,
-            todayIndex: todayIdx,
-            lastUpdatedDate: now.toDateString(),
-            mealHistory: [], // {name, calories, protein, carbs, fat, time}
-            todayTotal: 0,
-            todayMacros: { protein: 0, carbs: 0, fat: 0 },
-            scannedFood: null, // hozirgi skaner natijasi
-        };
-    }
+    const resultCard = document.getElementById('resultCard');
+    const resultText = document.getElementById('resultText');
+    const foodName = document.getElementById('foodName');
+    const calories = document.getElementById('calories');
+    const protein = document.getElementById('protein');
+    const fat = document.getElementById('fat');
+    const carbs = document.getElementById('carbs');
+    const confidence = document.getElementById('confidence');
+    const historyList = document.getElementById('historyList');
 
-    // Load data
-    function loadData() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const data = JSON.parse(raw);
-                // Check date reset
-                const now = new Date();
-                if (data.lastUpdatedDate !== now.toDateString()) {
-                    // Yangi kun – bugungi hisobni nollash, lekin haftalikni saqlash
-                    const todayIdx = now.getDay();
-                    data.todayTotal = 0;
-                    data.todayMacros = { protein: 0, carbs: 0, fat: 0 };
-                    data.mealHistory = [];
-                    data.lastUpdatedDate = now.toDateString();
-                    data.todayIndex = todayIdx;
-                    // Agar hafta o'zgarmagan bo'lsa weekData ni saqlaymiz
-                    if (!data.weekCalories) data.weekCalories = getDefaultData().weekCalories;
-                    saveData(data);
-                }
-                return data;
-            }
-        } catch (e) {
-            console.error('Data load error:', e);
-        }
-        return getDefaultData();
-    }
+    let stream = null;
+    let lastImage = null;
 
-    function saveData(data) {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        } catch (e) {
-            showToast('Xotirada joy qolmadi!');
-        }
-    }
-
-    let appData = loadData();
-    let chartInstance = null;
-
-    // ==================== TOAST ====================
-    function showToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.classList.add('show');
-        clearTimeout(toast._timeout);
-        toast._timeout = setTimeout(() => toast.classList.remove('show'), 2000);
-    }
-
-    // ==================== NAVIGATION ====================
-    function switchPage(pageId, navBtn) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        document.querySelectorAll('.bottom-nav .nav-item').forEach(b => b.classList.remove('active'));
-        if (navBtn) navBtn.classList.add('active');
-
-        if (pageId === 'pageDashboard') {
-            updateDashboard();
-        }
-        if (pageId === 'pageChat') {
-            scrollChatBottom();
-        }
-    }
-
-    // ==================== DASHBOARD UPDATE ====================
-    function updateDashboard() {
-        const todayKey = `day${appData.todayIndex}`;
-        const todayCal = appData.todayTotal || 0;
-        const weekCal = appData.weekCalories || {};
-
-        // UI elementlar
-        document.getElementById('todayCalories').textContent = todayCal;
-        document.getElementById('dailyGoal').textContent = DAILY_GOAL;
-
-        const percent = Math.min(100, Math.round((todayCal / DAILY_GOAL) * 100));
-        document.getElementById('progressPercent').textContent = percent + '%';
-
-        // Progress circle
-        const circle = document.getElementById('progressCircle');
-        const circumference = 2 * Math.PI * 32; // r=32
-        const offset = circumference - (percent / 100) * circumference;
-        circle.setAttribute('stroke-dasharray', circumference);
-        circle.setAttribute('stroke-dashoffset', offset);
-
-        // Makronutriyentlar
-        document.getElementById('macroProtein').textContent = (appData.todayMacros?.protein || 0) + 'g';
-        document.getElementById('macroCarbs').textContent = (appData.todayMacros?.carbs || 0) + 'g';
-        document.getElementById('macroFat').textContent = (appData.todayMacros?.fat || 0) + 'g';
-
-        // Meal history
-        const historyDiv = document.getElementById('mealHistory');
-        if (appData.mealHistory && appData.mealHistory.length > 0) {
-            historyDiv.innerHTML = appData.mealHistory.map((m, i) => `
-            <div class="bg-white rounded-2xl px-4 py-3 flex justify-between items-center shadow-sm border border-gray-50">
-              <div>
-                <p class="font-semibold text-gray-700 text-sm">${m.name}</p>
-                <p class="text-xs text-gray-400">${m.time || ''}</p>
-              </div>
-              <span class="font-bold text-emerald-600">${m.calories} kkal</span>
-            </div>
-          `).reverse().join('');
-        } else {
-            historyDiv.innerHTML =
-                '<p class="text-sm text-gray-400 italic text-center py-4">Hozircha taom qo\'shilmagan</p>';
-        }
-
-        // Grafikni yangilash
-        updateChart();
-    }
-
-    // ==================== CHART ====================
-    function updateChart() {
-        const ctx = document.getElementById('chartCanvas').getContext('2d');
-        const weekCal = appData.weekCalories || {};
-        const todayIdx = appData.todayIndex;
-
-        const labels = weekDays;
-        const dataValues = [];
-        for (let i = 0; i < 7; i++) {
-            dataValues.push(weekCal[`day${i}`] || 0);
-        }
-
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        chartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Kaloriya (kkal)',
-                    data: dataValues,
-                    backgroundColor: dataValues.map((v, i) =>
-                        i === todayIdx ? 'rgba(16, 185, 129, 0.85)' : 'rgba(16, 185, 129, 0.3)'
-                    ),
-                    borderColor: dataValues.map((v, i) =>
-                        i === todayIdx ? '#059669' : 'rgba(16, 185, 129, 0.5)'
-                    ),
-                    borderWidth: 2,
-                    borderRadius: 10,
-                    borderSkipped: false,
-                    hoverBackgroundColor: '#10B981',
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => `${ctx.raw} kkal`,
-                            title: (ctx) => weekDaysFull[ctx[0].dataIndex],
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: Math.max(DAILY_GOAL, Math.max(...dataValues) + 400),
-                        grid: { color: '#F3F4F6' },
-                        ticks: { font: { size: 11 }, color: '#9CA3AF' },
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { size: 11, weight: '600' }, color: '#6B7280' },
-                    }
-                },
-                animation: {
-                    duration: 700,
-                    easing: 'easeOutQuart',
-                }
-            }
-        });
-
-        // Bugungi bar'ni ajratib ko'rsatish
-        setTimeout(() => {
-            if (chartInstance && chartInstance.data.datasets[0]) {
-                const meta = chartInstance.getDatasetMeta(0);
-                if (meta.data[todayIdx]) {
-                    // highlight effect already via color
-                }
-            }
-        }, 100);
-    }
-
-    // ==================== FOOD ADD ====================
-    function addFoodItem(name, calories, protein, carbs, fat) {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
-        const todayKey = `day${appData.todayIndex}`;
-
-        // Update week calories
-        if (!appData.weekCalories) appData.weekCalories = {};
-        appData.weekCalories[todayKey] = (appData.weekCalories[todayKey] || 0) + calories;
-
-        // Update today total
-        appData.todayTotal = (appData.todayTotal || 0) + calories;
-
-        // Update macros
-        if (!appData.todayMacros) appData.todayMacros = { protein: 0, carbs: 0, fat: 0 };
-        appData.todayMacros.protein = (appData.todayMacros.protein || 0) + protein;
-        appData.todayMacros.carbs = (appData.todayMacros.carbs || 0) + carbs;
-        appData.todayMacros.fat = (appData.todayMacros.fat || 0) + fat;
-
-        // Add to history
-        if (!appData.mealHistory) appData.mealHistory = [];
-        appData.mealHistory.push({
-            name,
-            calories,
-            protein,
-            carbs,
-            fat,
-            time: timeStr,
-        });
-
-        appData.lastUpdatedDate = new Date().toDateString();
-        saveData(appData);
-        updateDashboard();
-        showToast(`✅ ${name} qo'shildi: +${calories} kkal`);
-    }
-
-    // ==================== SCANNER LOGIC ====================
-    function handleFileSelect(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        // Show loading animation
-        document.getElementById('scanPlaceholder').classList.add('hidden');
-        document.getElementById('scanResult').classList.add('hidden');
-        document.getElementById('scanLoading').classList.remove('hidden');
-
-        // 2 soniyadan keyin "natija" chiqarish
-        setTimeout(() => {
-            document.getElementById('scanLoading').classList.add('hidden');
-            document.getElementById('scanResult').classList.remove('hidden');
-
-            // Ovqatni "aniqlash" – real ilovada AI API chaqiriladi
-            const detected = detectFoodFromImage(file);
-            appData.scannedFood = detected;
-            displayScanResult(detected);
-        }, 2000);
-    }
-
-    function detectFoodFromImage(file) {
-        // Simulyatsiya: fayl nomi yoki random asosida taom tanlash
-        const foods = [
-            { name: 'Palov', calories: 580, protein: 18, carbs: 72, fat: 22 },
-            { name: 'Manti', calories: 480, protein: 22, carbs: 48, fat: 20 },
-            { name: 'Shashlik', calories: 350, protein: 28, carbs: 4, fat: 24 },
-            { name: 'Tort bo‘lagi', calories: 420, protein: 5, carbs: 58, fat: 18 },
-            { name: 'Salat', calories: 120, protein: 4, carbs: 10, fat: 7 },
-            { name: 'Burger', calories: 650, protein: 28, carbs: 44, fat: 35 },
-            { name: 'Lag‘mon', calories: 510, protein: 20, carbs: 60, fat: 16 },
-            { name: 'Somsa', calories: 380, protein: 14, carbs: 38, fat: 20 },
-        ];
-        // Tasodifiy tanlash (real AI o'rniga)
-        const idx = Math.floor(Math.random() * foods.length);
-        return foods[idx];
-    }
-
-    function quickScan(name, calories, protein, carbs, fat) {
-        const detected = { name, calories, protein, carbs, fat };
-        appData.scannedFood = detected;
-        // UI'ni skaner sahifasiga o'tkazamiz va natijani ko'rsatamiz
-        switchPage('pageScanner', document.querySelector('[data-page="pageScanner"]'));
-        document.getElementById('scanPlaceholder').classList.add('hidden');
-        document.getElementById('scanLoading').classList.add('hidden');
-        document.getElementById('scanResult').classList.remove('hidden');
-        displayScanResult(detected);
-        showToast('🔍 Tezkor skaner: ' + name);
-    }
-
-    function displayScanResult(food) {
-        document.getElementById('scanFoodName').textContent = food.name;
-        document.getElementById('scanCalories').textContent = food.calories + ' kkal';
-        document.getElementById('scanProtein').textContent = food.protein + 'g';
-        document.getElementById('scanCarbs').textContent = food.carbs + 'g';
-        document.getElementById('scanFat').textContent = food.fat + 'g';
-    }
-
-    function addScannedFood() {
-        if (!appData.scannedFood) {
-            showToast('⚠️ Avval ovqatni skanerlang!');
-            return;
-        }
-        const food = appData.scannedFood;
-        addFoodItem(food.name, food.calories, food.protein, food.carbs, food.fat);
-        resetScanner();
-        switchPage('pageDashboard', document.querySelector('[data-page="pageDashboard"]'));
-    }
-
-    function resetScanner() {
-        appData.scannedFood = null;
-        document.getElementById('scanPlaceholder').classList.remove('hidden');
-        document.getElementById('scanLoading').classList.add('hidden');
-        document.getElementById('scanResult').classList.add('hidden');
-        document.getElementById('fileInput').value = '';
-    }
-
-    // ==================== AI CHAT ====================
-    const chatKnowledge = {
-        'palov': 'Palov – o‘zbek milliy taomi. 1 porsiya (300g) taxminan 580 kkal. Tarkibi: 18g oqsil, 72g uglevod, 22g yog‘. Kaloriyasi yuqori, lekin mazali! 🍛',
-        'manti': 'Manti – bug‘da pishiriladigan taom. 4 dona manti taxminan 480 kkal. 22g oqsil, 48g uglevod, 20g yog‘. 🥟',
-        'shashlik': 'Shashlik – grilda pishirilgan go‘sht. 1 porsiya (200g) taxminan 350 kkal. 28g oqsil, 4g uglevod, 24g yog‘. Protein manbai! 🥩',
-        'salat': 'Yangi salat – past kaloriyali. 1 porsiya taxminan 120 kkal. 4g oqsil, 10g uglevod, 7g yog‘. Sog‘lom tanlov! 🥗',
-        'burger': 'Burger – fastfud. 1 dona taxminan 650 kkal. 28g oqsil, 44g uglevod, 35g yog‘. Juda ko‘p iste‘mol qilmang! 🍔',
-        'tort': 'Tort bo‘lagi – shirinlik. 1 bo‘lak (150g) taxminan 420 kkal. 5g oqsil, 58g uglevod, 18g yog‘. Cheklangan miqdorda tavsiya qilinadi. 🍰',
-        'somsa': 'Somsa – tandirda pishiriladi. 1 dona taxminan 380 kkal. 14g oqsil, 38g uglevod, 20g yog‘. 🥐',
-        'lagmon': 'Lag‘mon – uyg‘ur taomi. 1 porsiya taxminan 510 kkal. 20g oqsil, 60g uglevod, 16g yog‘. 🍜',
-        'kaloriya': 'Kaloriya – energiya o‘lchov birligi. O‘rtacha odam kuniga 2000-2500 kkal iste‘mol qilishi kerak. Bu dastur yordamida o‘z kaloriyangizni kuzatib boring! 💪',
+    const nutritionDB = {
+      pizza: { calories: 285, protein: 12, fat: 10, carbs: 36 },
+      burger: { calories: 354, protein: 17, fat: 14, carbs: 33 },
+      salad: { calories: 120, protein: 3, fat: 7, carbs: 10 },
+      rice: { calories: 206, protein: 4, fat: 0.4, carbs: 45 },
+      chicken: { calories: 239, protein: 27, fat: 14, carbs: 0 },
+      soup: { calories: 90, protein: 4, fat: 2, carbs: 12 },
+      apple: { calories: 95, protein: 0.5, fat: 0.3, carbs: 25 },
+      banana: { calories: 105, protein: 1.3, fat: 0.4, carbs: 27 }
     };
 
-    function sendChatMessage() {
-        const input = document.getElementById('chatInput');
-        const message = input.value.trim();
-        if (!message) return;
-
-        const chatDiv = document.getElementById('chatMessages');
-
-        // Foydalanuvchi xabari
-        chatDiv.innerHTML += `
-        <div class="bg-gray-100 rounded-2xl px-4 py-3 self-end max-w-[85%] ml-auto">
-          <p class="text-sm text-gray-800">${escapeHtml(message)}</p>
-        </div>
-      `;
-
-        // AI javobini generatsiya qilish
-        const aiResponse = generateAiResponse(message.toLowerCase());
-
-        setTimeout(() => {
-            chatDiv.innerHTML += `
-          <div class="bg-emerald-50 rounded-2xl px-4 py-3 self-start max-w-[85%]">
-            <p class="text-sm text-gray-700">${aiResponse}</p>
-          </div>
-        `;
-            scrollChatBottom();
-        }, 600 + Math.random() * 800);
-
-        input.value = '';
-        scrollChatBottom();
+    function setTab(mode) {
+      const cameraMode = mode === 'camera';
+      cameraTab.classList.toggle('active', cameraMode);
+      uploadTab.classList.toggle('active', !cameraMode);
+      cameraSection.style.display = cameraMode ? 'grid' : 'none';
+      uploadSection.style.display = cameraMode ? 'none' : 'grid';
     }
 
-    function generateAiResponse(query) {
-        // Kalit so'zlar bo'yicha qidirish
-        for (const [key, response] of Object.entries(chatKnowledge)) {
-            if (query.includes(key)) {
-                return response;
-            }
-        }
-        // Agar kaloriya so'ralsa
-        if (query.includes('necha') || query.includes('qancha') || query.includes('kaloriya')) {
-            return 'Iltimos, aniq taom nomini yozing. Masalan: "Palov qancha kaloriya?" yoki "Manti kaloriyasi". Men bilgan taomlar: palov, manti, shashlik, salat, burger, tort, somsa, lag‘mon. 😊';
-        }
-        return 'Kechirasiz, bu savolga aniq javob topa olmadim. Iltimos, taom nomi va kaloriyasi haqida so‘rang. Men palov, manti, shashlik va boshqa taomlar haqida maʼlumot beraman. 🍽️';
-    }
+    cameraTab.onclick = () => setTab('camera');
+    uploadTab.onclick = () => setTab('upload');
 
-    function scrollChatBottom() {
-        const chatDiv = document.getElementById('chatMessages');
-        if (chatDiv) chatDiv.scrollTop = chatDiv.scrollHeight;
-    }
+    chooseFileBtn.onclick = () => fileInput.click();
 
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Chat input Enter tugmasi
-    document.addEventListener('DOMContentLoaded', () => {
-        const chatInput = document.getElementById('chatInput');
-        if (chatInput) {
-            chatInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendChatMessage();
-            });
-        }
-    });
-
-    // ==================== CLEAR ====================
-    function clearAllData() {
-        if (confirm('Haqiqatan ham barcha maʼlumotlarni o‘chirishni xohlaysizmi?')) {
-            const todayIdx = new Date().getDay();
-            const fresh = getDefaultData();
-            fresh.todayIndex = todayIdx;
-            fresh.lastUpdatedDate = new Date().toDateString();
-            appData = fresh;
-            saveData(appData);
-            updateDashboard();
-            showToast('🗑️ Barcha maʼlumotlar tozalandi');
-        }
-    }
-
-    // ==================== INITIALIZATION ====================
-    function initApp() {
-        // Check date change
-        const now = new Date();
-        if (appData.lastUpdatedDate !== now.toDateString()) {
-            const todayIdx = now.getDay();
-            appData.todayTotal = 0;
-            appData.todayMacros = { protein: 0, carbs: 0, fat: 0 };
-            appData.mealHistory = [];
-            appData.lastUpdatedDate = now.toDateString();
-            appData.todayIndex = todayIdx;
-            if (!appData.weekCalories) appData.weekCalories = getDefaultData().weekCalories;
-            saveData(appData);
-        }
-        updateDashboard();
-    }
-
-    // Start
-    initApp();
-    updateChart();
-
-    // Drag & drop qo'llab-quvvatlash (skaner uchun)
-    const scanArea = document.getElementById('scanArea');
-    if (scanArea) {
-        scanArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            scanArea.style.borderColor = '#10B981';
+    startCameraBtn.onclick = async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false
         });
-        scanArea.addEventListener('dragleave', () => {
-            scanArea.style.borderColor = '#E5E7EB';
-        });
-        scanArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            scanArea.style.borderColor = '#E5E7EB';
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const input = document.getElementById('fileInput');
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                input.files = dt.files;
-                handleFileSelect({ target: { files: dt.files } });
-            }
-        });
+        video.srcObject = stream;
+        cameraStatus.innerHTML = '<span class="scanner-dot"></span>Kamera yoqildi. Ovqatni markazga qo'ying.';
+      } catch (err) {
+        cameraStatus.textContent = 'Kamera ochilmadi: ' + err.message;
+      }
+    };
+
+    stopCameraBtn.onclick = () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+        video.srcObject = null;
+        cameraStatus.textContent = 'Holat: kamera o‘chiq.';
+      }
+    };
+
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      lastImage = file;
+      const url = URL.createObjectURL(file);
+      preview.src = url;
+      preview.style.display = 'block';
+      uploadStatus.textContent = 'Rasm tanlandi: ' + file.name;
+    };
+
+    function mockScan() {
+      const foods = Object.keys(nutritionDB);
+      const food = foods[Math.floor(Math.random() * foods.length)];
+      const n = nutritionDB[food];
+      const conf = Math.floor(80 + Math.random() * 20);
+      return { food, ...n, conf };
     }
 
-    console.log('✅ Calorie AI Scanner tayyor!');
-    console.log('📊 Dashboard | 📸 AI Scan | 🤖 AI Chat');
-    console.log('💾 localStorage orqali maʼlumotlar saqlanadi');
-    console.log('📈 Chart.js real-time grafik');
-    console.log('🎯 Barcha funksiyalar ishlayapti!');
-</script>
+    function showResult(data) {
+      resultCard.style.display = 'block';
+      foodName.textContent = data.food;
+      calories.textContent = data.calories + ' kcal';
+      protein.textContent = data.protein + ' g';
+      fat.textContent = data.fat + ' g';
+      carbs.textContent = data.carbs + ' g';
+      confidence.textContent = data.conf + '%';
+      resultText.textContent = `AI taxmini bo‘yicha "${data.food}" aniqlanadi.`;
+
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${data.food}</span><span>${data.calories} kcal — ${data.conf}%</span>`;
+      if (historyList.children.length === 1 && historyList.children[0].textContent.includes('Hali scan')) {
+        historyList.innerHTML = '';
+      }
+      historyList.prepend(li);
+    }
+
+    captureBtn.onclick = () => {
+      if (!stream) {
+        cameraStatus.textContent = 'Avval kamerani yoqing.';
+        return;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      lastImage = canvas.toDataURL('image/jpeg', 0.92);
+      showResult(mockScan());
+    };
+
+    scanUploadBtn.onclick = () => {
+      if (!lastImage) {
+        uploadStatus.textContent = 'Avval rasm tanlang.';
+        return;
+      }
+      showResult(mockScan());
+    };
+  </script>
 </body>
 </html>
