@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Calorie Scanner</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  body { background:#0f172a; color:white; }
+  .glass { background: rgba(255,255,255,0.06); backdrop-filter: blur(10px); }
+</style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+<!-- HEADER -->
+<div class="p-4 text-center text-xl font-bold">
+  AI Calorie Scanner
+</div>
+
+<!-- MAIN -->
+<div class="flex-1 p-4 space-y-4">
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="space-y-4">
+
+  <div class="glass p-4 rounded-xl">
+    <h2 class="text-lg font-semibold">Bugungi Kaloriya</h2>
+    <p id="totalCal" class="text-3xl font-bold">0 kcal</p>
+  </div>
+
+  <canvas id="chart" class="bg-white rounded-xl p-2"></canvas>
+
+  <div class="grid grid-cols-2 gap-2">
+    <button onclick="addFood('Palov',850,24,91,38)" class="bg-orange-500 p-3 rounded-xl">🍛 Palov</button>
+    <button onclick="addFood('Tort',450,6,60,20)" class="bg-pink-500 p-3 rounded-xl">🍰 Tort</button>
+    <button onclick="addFood('Burger',550,20,45,30)" class="bg-yellow-500 p-3 rounded-xl">🍔 Burger</button>
+    <button onclick="addFood('Salat',120,3,15,5)" class="bg-green-500 p-3 rounded-xl">🥗 Salat</button>
+  </div>
+
+</div>
+
+<!-- SCANNER -->
+<div id="scanner" class="hidden space-y-4">
+
+  <div class="glass p-4 rounded-xl text-center">
+    <p class="text-lg">AI Scan Kamera</p>
+    <div id="scanBox" class="mt-4 h-40 bg-black rounded-xl flex items-center justify-center">
+      <p id="scanText">Tayyor...</p>
+    </div>
+  </div>
+
+  <button onclick="fakeScan()" class="bg-blue-500 w-full p-3 rounded-xl">
+    📷 Scan qilish
+  </button>
+
+</div>
+
+<!-- HISTORY -->
+<div id="history" class="hidden space-y-2">
+  <h2 class="text-lg font-bold">Tarix</h2>
+  <div id="historyList" class="space-y-2"></div>
+
+  <button onclick="clearAll()" class="bg-red-500 w-full p-3 rounded-xl mt-4">
+    🗑 Tozalash
+  </button>
+</div>
+
+<!-- AI CHAT -->
+<div id="ai" class="hidden space-y-3">
+
+  <div class="glass p-3 rounded-xl h-64 overflow-auto" id="chatBox">
+    <p class="text-gray-400">AI bilan savol bering...</p>
+  </div>
+
+  <input id="userInput" class="w-full p-3 rounded-xl text-black" placeholder="Savol yozing..." />
+
+  <button onclick="sendAI()" class="bg-purple-500 w-full p-3 rounded-xl">
+    Yuborish
+  </button>
+
+</div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="flex justify-around bg-gray-900 p-3">
+  <button onclick="showTab('dashboard')">🏠</button>
+  <button onclick="showTab('scanner')">📷</button>
+  <button onclick="showTab('history')">📊</button>
+  <button onclick="showTab('ai')">🤖</button>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("calorieData")) || [];
+
+function save(){
+  localStorage.setItem("calorieData", JSON.stringify(data));
+  updateUI();
+}
+
+function addFood(name, cal, p, c, f){
+  const item = {
+    name, cal, p, c, f,
+    time: new Date().toLocaleString()
+  };
+  data.push(item);
+  save();
+}
+
+function updateUI(){
+
+  let total = data.reduce((a,b)=>a+b.cal,0);
+  document.getElementById("totalCal").innerText = total + " kcal";
+
+  updateChart();
+  updateHistory();
+}
+
+function updateHistory(){
+  let box = document.getElementById("historyList");
+  box.innerHTML = "";
+
+  data.slice().reverse().forEach(i=>{
+    box.innerHTML += `
+      <div class="glass p-3 rounded-xl">
+        <b>${i.name}</b> - ${i.cal} kcal
+        <div class="text-xs text-gray-400">${i.time}</div>
+      </div>
+    `;
+  });
+}
+
+let chart;
+
+function updateChart(){
+
+  let days = ["Du","Se","Ch","Pa","Ju","Sh","Ya"];
+  let values = Array(7).fill(0);
+
+  data.forEach((d,i)=>{
+    values[i%7] += d.cal;
+  });
+
+  if(chart) chart.destroy();
+
+  chart = new Chart(document.getElementById("chart"), {
+    type:"line",
+    data:{
+      labels:days,
+      datasets:[{
+        data:values,
+        borderColor:"#38bdf8",
+        backgroundColor:"rgba(56,189,248,0.2)",
+        tension:0.4
+      }]
+    }
+  });
+}
+
+function fakeScan(){
+  document.getElementById("scanText").innerText = "AI tahlil qilmoqda...";
+  
+  setTimeout(()=>{
+    let foods = [
+      ["Palov",850,24,91,38],
+      ["Tort",450,6,60,20],
+      ["Burger",550,20,45,30]
+    ];
+
+    let f = foods[Math.floor(Math.random()*foods.length)];
+    addFood(...f);
+
+    document.getElementById("scanText").innerText = "Topildi: " + f[0];
+  },2000);
+}
+
+function clearAll(){
+  data = [];
+  save();
+}
+
+function showTab(tab){
+  ["dashboard","scanner","history","ai"].forEach(id=>{
+    document.getElementById(id).classList.add("hidden");
+  });
+  document.getElementById(tab).classList.remove("hidden");
+}
+
+/* AI CHAT (demo) */
+function sendAI(){
+  let input = document.getElementById("userInput");
+  let text = input.value;
+
+  if(!text) return;
+
+  let box = document.getElementById("chatBox");
+
+  box.innerHTML += `<div>👤 ${text}</div>`;
+
+  let reply = "Bu demo AI. Real API ulash kerak.";
+
+  if(text.toLowerCase().includes("kaloriya")){
+    reply = "Kaloriya ovqat turiga bog‘liq. AI scan ishlat.";
+  }
+
+  setTimeout(()=>{
+    box.innerHTML += `<div>🤖 ${reply}</div>`;
+  },500);
+
+  input.value = "";
+}
+
+updateUI();
+</script>
+
+</body>
+</html>
